@@ -2,12 +2,18 @@ const express = require('express')
 const app = express()
 const { ObjectId } = require('mongodb')
 
+// override npm 세팅
+const methodOverride = require('method-override')
+
+// override npm 세팅
+app. use(methodOverride('_method'))
+
 app.use(express.static(__dirname + '/public'))
 
 // ejs npm 사용설정
 app.set('view engine', 'ejs')
 
-// 요청.body 사용하기 전 세팅
+// req.body 사용하기 전 세팅
 // 2. 서버는 글에 이상한거 없는지 검사함
 app.use(express.json())
 app.use(express.urlencoded({extended:true}))
@@ -28,20 +34,21 @@ new MongoClient(url).connect().then((client)=>{
   console.log(err)
 })
 
-
-app.get('/', (요청, 응답) => {
+// req = request 요청
+// res = response 응답
+app.get('/', (req, res) => {
   // html파일을 유저에게 보내고 싶으면 sendFile로 한다.
   // __dirname == 현재경로(server.js가 위치한)
-    응답.sendFile(__dirname + '/index.html')
+    res.sendFile(__dirname + '/index.html')
 })
 
-app.get('/news', (요청, 응답) => {
+app.get('/news', (req, res) => {
     // DB와 연동 되었는지 확인 함
     db.collection('post').insertOne({title: '테스트 중'})
-    응답.send('{title:테스트중}이 DB에 저장 됨')
+    res.send('{title:테스트중}이 DB에 저장 됨')
 })
 
-app.get('/list', async (요청, 응답) => {
+app.get('/list', async (req, res) => {
     let result = await db.collection('post').find().toArray()
     // await db.collection('post').find().toArray()
     //  >> db 컬렉션의 모든 document 출력 하는 문법
@@ -60,13 +67,13 @@ app.get('/list', async (요청, 응답) => {
      *   >> render('ejs File', { Data }) 객체 형태로 데이터 꽂아주는 것이 관례
      * 2. ejs파일 안에서 <%= 데이터이름 %>으로 꽂아서 사용 가능
      */
-    응답.render('list.ejs', { list : result })
+    res.render('list.ejs', { list : result })
   })
 
   // 숙제 : /time으로 접속하면 현재 서버의 시간을 보내주는 기능 만들기
-  app.get('/time', (요청, 응답) => {
+  app.get('/time', (req, res) => {
     console.log(new Date())
-    응답.render('time.ejs', { time : new Date() })
+    res.render('time.ejs', { time : new Date() })
   }) // 숙제 끝
 
   /** 글 작성 기능 어케만들까?
@@ -77,15 +84,15 @@ app.get('/list', async (요청, 응답) => {
    */
 
   // 1. 유저가 글 작성페이지에서 글을 써서 서버로 전송함
-  app.get('/write', (요청,응답) => {
-    응답.render('write.ejs')
+  app.get('/write', (req,res) => {
+    res.render('write.ejs')
   })
 
   // 2. 서버는 글에 이상한거 없는지 검사함 == 상단 app.use에 있음
 
   // 3. 이상이 없으면 DB에 저장하기
-  app.post('/newpost', async (요청,응답) => {
-    console.log(요청.body)
+  app.post('/newpost', async (req,res) => {
+    console.log(req.body)
 
     // 예외처리하는 방법
     /** try catch
@@ -95,41 +102,41 @@ app.get('/list', async (요청, 응답) => {
      */
     try {
       // try안에 있는 코드가 뭔가 에러가 나게 되면
-      if ( 요청.body.title == '' || 요청.body.content == '' ){
-          응답.send('작성하지 않은 부분이 있습니다.')
+      if ( req.body.title == '' || req.body.content == '' ){
+          res.send('작성하지 않은 부분이 있습니다.')
         } else {
-          await db.collection('post').insertOne({title: 요청.body.title, content: 요청.body.content})
-          응답.redirect('/list')
+          await db.collection('post').insertOne({title: req.body.title, content: req.body.content})
+          res.redirect('/list')
         }
     } catch (e) {
       // catch 안에 있는 코드를 대신 실행해주는 유용한 문법
       // 센스있는 개발자는 서버 에러가 났을 때 status(500)을 추가하여 프론트 개발자에게 전달할 수 있게 함
       // console.log(e)로 터미널에서도 어떤 에러가 난건지 확인 가능함
       console.log(e)
-      응답.status(500).send('서버 에러 남')
+      res.status(500).send('서버 에러 남')
     }
 
   })
 
   // 숙제 : 새로운페이지에 form태그를 활용하여 전송버튼 누르면 새로운 collection에 글 발행해주는 기능 제작
-  app.get('/write2', (요청,응답) => {
-    응답.render('write2.ejs')
+  app.get('/write2', (req,res) => {
+    res.render('write2.ejs')
   })
 
-  app.post('/newpost2', async (요청,응답) => {
-    console.log(요청.body)
+  app.post('/newpost2', async (req,res) => {
+    console.log(req.body)
     try{
-      if(요청.body.id == ''){
-        응답.send('아이디 입력 안하심')
-      } else if(요청.body.pw == ''){
-        응답.send('암호 입력 안하심')
+      if(req.body.id == ''){
+        res.send('아이디 입력 안하심')
+      } else if(req.body.pw == ''){
+        res.send('암호 입력 안하심')
       } else {
-        await db.collection('post').insertOne({id: 요청.body.id, pw: 요청.body.pw})
-        응답.redirect('/write2')
+        await db.collection('post').insertOne({id: req.body.id, pw: req.body.pw})
+        res.redirect('/write2')
       }
     } catch(e){
       console.log(e)
-      응답.status(500).send('서버 에러 남')
+      res.status(500).send('서버 에러 남')
     }
   }) // 숙제 끝
 
@@ -142,22 +149,22 @@ app.get('/list', async (요청, 응답) => {
   // /detail/:text == url에다가 /detail/아무텍스트 를 입력하면 두번째 파라미터 콜백함수 안에 있는 코드 실행 가능함
   // 1. 유저가 '/detail/어쩌구'로 접속하면
   // 2. {_id:어쩌구}글을 DB에서 찾아서
-  app.get('/detail/:id', async (요청, 응답) => {
+  app.get('/detail/:id', async (req, res) => {
     // 3. ejs파일에 박아서 보내줌
     // await db.collection('post').findOne({데이터:값}) >> db collection 중에 '데이터:값'인 데이터를 찾아서 가져와 줌
     // objectId 쓰려면 상단에 이거 입력해야함 >> const { ObjectId } = require('mongodb')
-    // url parameter 가져오는 방법은 '요청.params.parameter'로 작성함
+    // url parameter 가져오는 방법은 'req.params.parameter'로 작성함
     try {
-      console.log('params : ', 요청.params.id)
-      let result = await db.collection('post').findOne({ _id : new ObjectId(요청.params.id) })
+      console.log('params : ', req.params.id)
+      let result = await db.collection('post').findOne({ _id : new ObjectId(req.params.id) })
       console.log('result : ', result)
-      응답.render('detail.ejs', {detail : result})
+      res.render('detail.ejs', {detail : result})
       if (result == null){
-        응답.status(404).send('이상한 url 입력함')
+        res.status(404).send('이상한 url 입력함')
       }
     } catch(e) {
       console.log(e)
-      응답.status(404).send('이상한 url 입력함')
+      res.status(404).send('이상한 url 입력함')
     }
   })
 
@@ -172,15 +179,30 @@ app.get('/list', async (요청, 응답) => {
    * db.collection('post').updateOne({ a : 1 }, {$set : { a : 2 }})
    * post콜렉션에서 {a:1}이 들어있는 document를 찾아서 {a:2}로 덮어씌우겠음
    */
-  app.get('/edit/:id', async (요청,응답) => {
-    let result = await db.collection('post').findOne({ _id : new ObjectId(요청.params.id) })
-    응답.render('edit.ejs', {postData : result})
+  app.get('/edit/:id', async (req,res) => {
+    let result = await db.collection('post').findOne({ _id : new ObjectId(req.params.id) })
+    res.render('edit.ejs', {postData : result})
   })
 
-  app.post('/edit', async (요청,응답) => {
-    let result = await db.collection('post').updateOne(
-      { _id : new ObjectId(요청.body.id) },
-      { $set: { title : 요청.body.title, content : 요청.body.content } });
-    응답.redirect('/list')
-    console.log(result)
+  app.put('/edit', async (req,res) => {
+    // updateMany == 첫번째 파라미터(셀렉터?)와 일치하는 모든 document를 찾아줌
+    // 조건식을 넣고싶으면?
+    // { _id : {$gt : 10} } == _id필드의 값이 10초과인 document를 찾아줘
+    // $gt == 초과, $gte == 이상, $lt == 미만, $lte == 이하, $ne == 같지않음
+    await db.collection('post').updateMany(
+      { _id : 1 },
+      // $inc == 기존값에 +/- 하라는 뜻
+      { $inc: { like : 1 } });
+
+      /** 다양한 연산자
+       * $mul == 곱해주셈
+       * $unset == 필드값 삭제(위에서는 like)
+       */
+      res.redirect('/list')
+
+    // await db.collection('post').updateOne(
+    //   { _id : new ObjectId(req.body.id) },
+    //   // $set == 덮어씌워줘
+    //   { $set: { title : req.body.title, content : req.body.content } });
+    // res.redirect('/list')
   })
