@@ -13,6 +13,7 @@ app.use(express.json())
 app.use(express.urlencoded({extended:true}))
 
 
+
 const { MongoClient } = require('mongodb')
 
 let db
@@ -176,9 +177,10 @@ app.get('/list', async (요청, 응답) => {
     응답.render('edit.ejs', {postData : result})
   })
 
-  app.post('/edit/:id', async (요청,응답) => {
-    await db.collection('post').updateOne(
-      { _id : new ObjectId(요청.params.id) },
-      { $set: { title : 요청.body.title, content : 요청.body.content } })
+  app.post('/edit', async (요청,응답) => {
+    let result = await db.collection('post').updateOne(
+      { _id : new ObjectId(요청.body.id) },
+      { $set: { title : 요청.body.title, content : 요청.body.content } });
     응답.redirect('/list')
+    console.log(result)
   })
