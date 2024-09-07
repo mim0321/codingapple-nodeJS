@@ -60,6 +60,19 @@ div {
   margin-top: 10px;
 }
 
+.detail-bg > h4 {
+  position: relative;
+}
+
+.detail-bg .underline {
+  position: absolute;
+  left: -30px;
+  bottom: -2px;
+  width: 30%;
+  height: 1px;
+  background-color: #ddd;
+}
+
 .delete {
   cursor: pointer;
 }
