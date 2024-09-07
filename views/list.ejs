@@ -51,16 +51,21 @@
         server에서 query문법으로 보낸 데이터 출력은 req.query로 가능
      -->
 
-    <script>
-      for (let i=0; i < '<%= list.length %>';i++){
-        console.log(i)
-        document.querySelectorAll('.delete')[i].addEventListener('click', function(){
-          fetch('/delete?docid = <%= list[0]._id %>', { // ejs문법과 js의 변수 i가 충돌해서 안됨...
+     <!-- 
+      문제 발생 : JS에서 선언한 변수 i는 ejs문법에서 읽을 수가 없음
+      해결 : for문을 ejs로 작성하고, 나머지 js는 script에 작성함.
+            변수 i는 ejs에서 선언하였으므로 ejs문법으로 중간에 사용!
+    -->
+     <% for (let i=0; i < list.length;i++){ %>
+     <script>
+        console.log(<%=i%>)
+        document.querySelectorAll('.delete')[<%=i%>].addEventListener('click', function(){
+          fetch('/delete?docid=<%= list[i]._id %>', {
             method : 'DELETE'
           })
         })
-      }
-    </script>
+      </script>
+      <% } %>
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
       integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
