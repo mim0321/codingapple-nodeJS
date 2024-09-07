@@ -22,7 +22,7 @@
         <h4>
           <a href="/detail/<%= list[i]._id %>"><%= list[i].title %></a>
           <a href="/edit/<%= list[i]._id %>">✏️</a>
-          <span class="delete">🗑️</span>
+          <span class="delete" data-id="<%= list[i]._id %>">🗑️</span>
         </h4>
         <p><%= list[i].content %></p>
       </div>
@@ -59,7 +59,12 @@
      <% for (let i=0; i < list.length;i++){ %>
      <script>
         console.log(<%=i%>)
-        document.querySelectorAll('.delete')[<%=i%>].addEventListener('click', function(){
+        document.querySelectorAll('.delete')[<%=i%>].addEventListener('click', function(e){
+          let datasetId = e.target.dataset.id
+          console.log(datasetId)
+          // fetch('/delete?docid=' + datasetId, { << data-set 활용해서 지우기!
+          // 글을 정렬하거나, 순서를 변경한다면 아래 list arr의 순번대로 delete를 할 경우 꼬일 수 있기 때문에
+          // data-set을 활용해 처리하는 것이 훨씬 정확할 수 있다!
           fetch('/delete?docid=<%= list[i]._id %>', {
             method : 'DELETE'
           })
