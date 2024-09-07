@@ -66,9 +66,34 @@
           fetch('/delete?docid=' + datasetId, {
             method : 'DELETE'
           })
-          dataParent.parentElement.remove();
+          // ajax 성공 시 서버가 보낸 데이터 같은 것도 출력이 가능하다.
+          // 현재 server.js에서 /delete, delete 요청 시 '삭제완료'라는 string을 send하고 있다.
+          // 만약 서버가 보내는 데이터가 arr, obj일 경우 .then((r)=>r.json())으로 작성해주어야 한다.
+          // 텍스트, arr, obj등 데이터가 들어있는 함수는 r 이다.
+          // ajax를 사용할 때에는 그냥 외부 라이브러리 쓰는 게 젤 나음. >> axios를 많이 사용한다고 함
+          .then((r)=>r.text())
+          .then((r)=>{ console.log(r) /**여기서 r.title, r.content 등 delete가 성공하면 ajax로 데이터 불러와서 작성하면 됨 */
+            dataParent.parentElement.remove();
+          })
         })
       }
+      // 예외처리 하는 법!
+      fetch('/')
+      .then((r)=>{
+        if(r.status == 200) {
+          return r.json()
+        } else {
+          // 서버가 에러코드 전송 시 실행할 코드
+          alert('error!')
+        }
+      })
+      .then((result)=>{
+        // 성공 시 실행할 코드
+      }).catch((error)=>{
+        // 인터넷 문제 등으로 실패 시 실행할 코드
+        console.log(error)
+      })
+
       </script>
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
