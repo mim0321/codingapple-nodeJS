@@ -60,11 +60,13 @@
       for (let i=0; i < '<%= list.length %>';i++){
         console.log(i)
         document.querySelectorAll('.delete')[i].addEventListener('click', function(e){
-          let datasetId = e.target.dataset.id
+          const datasetId = e.target.dataset.id;
+          const dataParent = e.target.parentElement;
           console.log(datasetId)
           fetch('/delete?docid=' + datasetId, {
             method : 'DELETE'
           })
+          dataParent.parentElement.remove();
         })
       }
       </script>
