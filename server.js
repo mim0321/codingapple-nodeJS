@@ -185,24 +185,30 @@ app.get('/list', async (req, res) => {
   })
 
   app.put('/edit', async (req,res) => {
+    await db.collection('post').updateOne(
+      { _id : new ObjectId(req.body.id) },
+      // $set == 덮어씌워줘
+      { $set: { title : req.body.title, content : req.body.content } });
+    res.redirect('/list')
+
     // updateMany == 첫번째 파라미터(셀렉터?)와 일치하는 모든 document를 찾아줌
     // 조건식을 넣고싶으면?
     // { _id : {$gt : 10} } == _id필드의 값이 10초과인 document를 찾아줘
     // $gt == 초과, $gte == 이상, $lt == 미만, $lte == 이하, $ne == 같지않음
-    await db.collection('post').updateMany(
-      { _id : 1 },
-      // $inc == 기존값에 +/- 하라는 뜻
-      { $inc: { like : 1 } });
+    // await db.collection('post').updateMany(
+    //   { _id : 1 },
+    //   // $inc == 기존값에 +/- 하라는 뜻
+    //   { $inc: { like : 1 } });
 
       /** 다양한 연산자
        * $mul == 곱해주셈
        * $unset == 필드값 삭제(위에서는 like)
        */
-      res.redirect('/list')
+      // res.redirect('/list')
+  })
 
-    // await db.collection('post').updateOne(
-    //   { _id : new ObjectId(req.body.id) },
-    //   // $set == 덮어씌워줘
-    //   { $set: { title : req.body.title, content : req.body.content } });
-    // res.redirect('/list')
+  app.delete('/delete', async (req, res) => {
+    await db.collection('post').deleteOne( { _id : new ObjectId(req.query.docid) } )
+    res.send('삭제완료')
+    // console.log(req.query)
   })

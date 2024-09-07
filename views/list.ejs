@@ -22,6 +22,7 @@
         <h4>
           <a href="/detail/<%= list[i]._id %>"><%= list[i].title %></a>
           <a href="/edit/<%= list[i]._id %>">✏️</a>
+          <span class="delete" data-id="<%= list[i]._id %>">🗑️</span>
         </h4>
         <p><%= list[i].content %></p>
       </div>
@@ -35,6 +36,38 @@
         3. <%= %> == html태그를 실제 태그가 아닌 string으로 변환해서 만들어줌
     -->
 
+    <!-- 
+      ajax를 사용해서 새로고침 없이 request하기
+      1. script를 열어서 addEventListener 콜백함수에 fetch함수 사용 >> fetch함수에 url을 적으면 서버에 get요청을 날려줌
+      2. 두번째 파라미터에 객체문법으로 method 지정가능 >> method : 'PUT'
+      3. ajax로 데이터를 전송하고 싶으면?
+        headers : {'Content-Type' : 'application/json '},
+        body : 데이터들 >> obj,arr를 보내고 싶으면 JSON.stringify({title : nike}) 처럼 보내주셈
+
+      ps. query문법으로 데이터 넣기
+        url?데이터명=데이터값 >> /abc?name=dongmin
+          &기호로 여러 데이터를 보낼 수 있음 >> /abc?name=dongmin&age=29
+        
+        server에서 query문법으로 보낸 데이터 출력은 req.query로 가능
+     -->
+
+     <!-- 
+      문제 발생 : JS에서 선언한 변수 i는 ejs문법에서 읽을 수가 없음
+      해결 : for문을 ejs로 작성하고, 나머지 js는 script에 작성함.
+            변수 i는 ejs에서 선언하였으므로 ejs문법으로 중간에 사용!
+    -->
+    <script>
+      for (let i=0; i < '<%= list.length %>';i++){
+        console.log(i)
+        document.querySelectorAll('.delete')[i].addEventListener('click', function(e){
+          let datasetId = e.target.dataset.id
+          console.log(datasetId)
+          fetch('/delete?docid=' + datasetId, {
+            method : 'DELETE'
+          })
+        })
+      }
+      </script>
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
       integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
