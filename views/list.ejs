@@ -56,21 +56,18 @@
       해결 : for문을 ejs로 작성하고, 나머지 js는 script에 작성함.
             변수 i는 ejs에서 선언하였으므로 ejs문법으로 중간에 사용!
     -->
-     <% for (let i=0; i < list.length;i++){ %>
-     <script>
-        console.log(<%=i%>)
-        document.querySelectorAll('.delete')[<%=i%>].addEventListener('click', function(e){
+    <script>
+      for (let i=0; i < '<%= list.length %>';i++){
+        console.log(i)
+        document.querySelectorAll('.delete')[i].addEventListener('click', function(e){
           let datasetId = e.target.dataset.id
           console.log(datasetId)
-          // fetch('/delete?docid=' + datasetId, { << data-set 활용해서 지우기!
-          // 글을 정렬하거나, 순서를 변경한다면 아래 list arr의 순번대로 delete를 할 경우 꼬일 수 있기 때문에
-          // data-set을 활용해 처리하는 것이 훨씬 정확할 수 있다!
-          fetch('/delete?docid=<%= list[i]._id %>', {
+          fetch('/delete?docid=' + datasetId, {
             method : 'DELETE'
           })
         })
+      }
       </script>
-      <% } %>
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
       integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
