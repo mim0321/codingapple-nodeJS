@@ -300,6 +300,24 @@ app.get('/list', async (req, res) => {
    */
 
   // 1. 가입기능 만들고 >> 나중에 숙제로 해볼 것(우선은 db에서 직접 발행해서 만듬)
+  app.post('/signup', async(req, res) => {
+    try {
+      // try안에 있는 코드가 뭔가 에러가 나게 되면
+      if ( req.body.username == '' || req.body.password == '' ){
+          res.send('작성하지 않은 부분이 있습니다.')
+        } else {
+          await db.collection('user').insertOne({username: req.body.username, password: req.body.password})
+          console.log('가입완료!')
+          res.redirect('/login')
+        }
+    } catch (e) {
+      // catch 안에 있는 코드를 대신 실행해주는 유용한 문법
+      // 센스있는 개발자는 서버 에러가 났을 때 status(500)을 추가하여 프론트 개발자에게 전달할 수 있게 함
+      // console.log(e)로 터미널에서도 어떤 에러가 난건지 확인 가능함
+      console.log(e)
+      res.status(500).send('서버 에러 남')
+    }
+  })
 
   // 2. 로그인 기능 만들고
   app.get('/login', async(req, res) => {
