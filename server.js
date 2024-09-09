@@ -304,7 +304,11 @@ app.get('/list', async (req, res) => {
   // 2. 로그인 기능 만들고
   app.get('/login', async(req, res) => {
     console.log(req.user)
-    res.render('login.ejs')
+    if(req.user != undefined){
+      res.redirect('/')
+    } else {
+      res.render('login.ejs')
+    }
   })
 
   app.post('/login', async(req, res, next) => {
