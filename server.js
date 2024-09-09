@@ -330,5 +330,10 @@ app.get('/list', async (req, res) => {
   // myPage 숙제
   app.get('/mypage', async(req, res) => {
     console.log(req.user)
-    res.render('login.ejs')
+    if(req.user == undefined){
+      res.send('잘못된 접근입니다.')
+    } else {
+      const result = req.user
+      res.render('mypage.ejs', { result : result })
+    }
   })
