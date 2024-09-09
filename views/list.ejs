@@ -29,6 +29,15 @@
       <% } %>
     </div>
 
+    <div class="pagination-box">
+      <!-- 1,2,3...페이지 버튼 -->
+      <a href="/list/1" class="btn btn-primary">1</a>
+      <a href="/list/2" class="btn btn-primary">2</a>
+      <a href="/list/3" class="btn btn-primary">3</a>
+      <!-- list 다음페이지 버튼 -->
+      <a href="/list/next/<%= list[ list.length - 1 ]._id %>" class="btn btn-primary">next</a>
+    </div>
+
     <!-- 
         ejs 중요 문법 3가지
         1. <% %> == html 사이에 자바스크립트 문법 사용할 때

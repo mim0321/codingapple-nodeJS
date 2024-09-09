@@ -212,3 +212,31 @@ app.get('/list', async (req, res) => {
     res.send('삭제완료')
     // console.log(req.query)
   })
+
+  /** <pagination 만들기>
+   * 1 누르면 1~5번 글 보여줌(/list/1)
+   * 2 누르면 6~10번 글 보여줌(/list/2)
+   * 3 누르면 11~15번 글 보여줌(/list/3).... << url parmeter문법 활용
+   */
+  app.get('/list/:id', async (req, res) => {
+    // 1~5번 글을 찾아서 result 변수에 저장
+    // find().limit(i).toArray() == 모든 글을 찾는데, 첫번째부터 i개만 잘라서 arr에 넣어줘
+    // find().skip(n).limit(i).toArray() == 모든 글을 찾는데, 첫번째부터 n개까지는 스킵하고 i개만 잘라서 arr에 넣어줘
+    // skip() 같은 경우 단위가 클 경우 성능이 매우 느려질 수 있다.
+
+    let result = await db.collection('post').find().skip((req.params.id - 1) * 5).limit(5).toArray()
+    res.render('list.ejs', { list : result })
+  })
+
+  app.get('/list/next/:id', async (req, res) => {
+  /** <페이지가 수천만개가 되어도 빠른 속도로 보여주는 방법>
+   * find()함수 안에 조건문을 넣어서 보여주기
+   * find({_id : {$gt : 방금 본 마지막 게시물의 id}})
+   * 장점 : 매우 빠르다.
+   * 단점 : '다음'버튼으로만 활용이 가능하다.
+   */
+  let result = await db.collection('post')
+  .find({_id : {$gt : new ObjectId(req.params.id)}})
+  .limit(5).toArray()
+  res.render('list.ejs', { list : result })
+  })

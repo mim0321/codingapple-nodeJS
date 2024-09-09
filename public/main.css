@@ -76,3 +76,12 @@ div {
 .delete {
   cursor: pointer;
 }
+
+.pagination-box {
+  display: flex;
+  justify-content: center;
+}
+
+.pagination-box > * {
+  margin: 0 3px;
+}
