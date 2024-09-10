@@ -23,13 +23,24 @@ const session = require('express-session')
 const passport = require('passport')
 const LocalStrategy = require('passport-local')
 
+// bcrypt 사용
+const bcrypt = require('bcrypt')
+
+// login시 db에 저장하는 법
+const MongoStore = require('connect-mongo')
+
 app.use(passport.initialize())
 app.use(session({
   secret: 'password',
   resave : false,
   saveUninitialized : false,
   // 유효기간 따로 설정하는 법(maxAge에 ms단위로 지정하면 됨
-  cookie : { maxAge : 60 * 60 * 1000 }
+  cookie : { maxAge : 60 * 60 * 1000 },
+  // connect-mongo 설정
+  store : MongoStore.create({
+    mongoUrl : 'mongodb+srv://admin:!mdlaodlf9@cluster0.tsxpd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', // DB접속용 url
+    dbName : 'forum', // DB이름
+  })
 }))
 app.use(passport.session())
 
@@ -40,7 +51,10 @@ passport.use(new LocalStrategy(async (입력한아이디, 입력한비번, cb) =
   if (!result) {
     return cb(null, false, { message: '아이디 DB에 없음' })
   }
-  if (result.password == 입력한비번) {
+
+  // bcrypt로 해싱된 암호를 비교해주는 함수
+  // bcrypt.compare(입력한암호, DB에 저장된 암호)
+  if (await bcrypt.compare(입력한비번, result.password)) {
     return cb(null, result)
   } else {
     return cb(null, false, { message: '비번불일치' });
@@ -302,18 +316,22 @@ app.get('/list', async (req, res) => {
   // 1. 가입기능 만들고 >> 나중에 숙제로 해볼 것(우선은 db에서 직접 발행해서 만듬)
   app.post('/signup', async(req, res) => {
     try {
-      // try안에 있는 코드가 뭔가 에러가 나게 되면
+      // 예외처리로 빈칸, 아이디 중복, 짧은암호 등등 만들자(숙제)
       if ( req.body.username == '' || req.body.password == '' ){
           res.send('작성하지 않은 부분이 있습니다.')
         } else {
-          await db.collection('user').insertOne({username: req.body.username, password: req.body.password})
+          // 비번 해싱화하기
+          // bcrypt.hash('해싱할 문자', 단계) >> 단계는 1~15 가능
+          let hash = await bcrypt.hash(req.body.password, 10)
+
+          await db.collection('user').insertOne({
+            username: req.body.username,
+            password: hash
+          })
           console.log('가입완료!')
           res.redirect('/login')
         }
     } catch (e) {
-      // catch 안에 있는 코드를 대신 실행해주는 유용한 문법
-      // 센스있는 개발자는 서버 에러가 났을 때 status(500)을 추가하여 프론트 개발자에게 전달할 수 있게 함
-      // console.log(e)로 터미널에서도 어떤 에러가 난건지 확인 가능함
       console.log(e)
       res.status(500).send('서버 에러 남')
     }
@@ -349,7 +367,7 @@ app.get('/list', async (req, res) => {
     })(req, res, next)
   })
 
-  // myPage 숙제
+  // myPage 만들기 숙제
   app.get('/mypage', async(req, res) => {
     console.log(req.user)
     if(req.user == undefined){
