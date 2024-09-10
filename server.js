@@ -84,6 +84,27 @@ passport.deserializeUser( async (user, done) => {
   })
 })
 
+// multer(aws-s3 파일 업로드, 다운로드 관련 라이브러리)
+const { S3Client } = require('@aws-sdk/client-s3')
+const multer = require('multer')
+const multerS3 = require('multer-s3')
+const s3 = new S3Client({
+  region : 'ap-northeast-2',
+  credentials : {
+      accessKeyId : process.env.awsAccessKey,
+      secretAccessKey : process.env.awsSecretAccessKey,
+  }
+})
+
+const upload = multer({
+  storage: multerS3({
+    s3: s3,
+    bucket: 'mim0321forum',
+    key: function (요청, file, cb) {
+      cb(null, Date.now().toString()) //업로드시 파일명 변경가능
+    }
+  })
+})
 
 const { MongoClient } = require('mongodb')
 
@@ -138,7 +159,7 @@ function checkLogin(req, res, next){
 // 오늘의 숙제(240911)
 // Q1. 누가 /list로 시작하는 API로 요청 시 현재 시간을 터미널에 출력하고 싶으면?
 // function을 따로 만들지 않고 app.use에서 직접 function 적어도 됨
-app.use('/list', ()=>{
+app.use('/list', (req, res, next)=>{
   console.log(new Date());
   next()
 })
@@ -214,21 +235,35 @@ app.get('/list', checkLogin, async (req, res) => {
   // 2. 서버는 글에 이상한거 없는지 검사함 == 상단 app.use에 있음
 
   // 3. 이상이 없으면 DB에 저장하기
-  app.post('/newpost', async (req,res) => {
+  // write.ejs에서 이미지 업로드 >> upload.single('name') 미들웨어로 작성
+  // 근데 이미지 에러나면 어떡함? 에러처리하는 법은 미들웨어 말고 따로 적어줘야함
+  // get요청이 되면 req.file에 다양한 정보가 들어있음
+  app.post('/newpost', upload.single('img1'), async (req,res) => {
     console.log(req.body)
-
+    console.log(req.file)
     // 예외처리하는 방법
     /** try catch
      * try {실행} catch(e) {에러시 실행}
      * 1. try안에 있는 코드가 뭔가 에러가나면
      * 2. catch 안에 있는 코드를 대신 실행해줘
      */
+
+    // 이미지 업로드 에러시 이렇게 작성
+    // upload.single('img1')(req, res, (err)=>{
+    //         if (err) return res.send('업로드 에러남');
+    //         // 업로드 완료시 실행할 코드는 여기에 작성
+    //       })
+
     try {
       // try안에 있는 코드가 뭔가 에러가 나게 되면
       if ( req.body.title == '' || req.body.content == '' ){
-          res.send('작성하지 않은 부분이 있습니다.')
-        } else {
-          await db.collection('post').insertOne({title: req.body.title, content: req.body.content})
+        res.send('작성하지 않은 부분이 있습니다.')
+      } else {
+        await db.collection('post').insertOne({
+          title: req.body.title,
+          content: req.body.content,
+          img: req.file.location,
+          })
           res.redirect('/list')
         }
     } catch (e) {

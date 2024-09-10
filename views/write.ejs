@@ -14,13 +14,38 @@
     <!-- 글 작성 폼 만들기 -->
     <!-- form은 action에 url주소, method에 해당메소드를 작성해주어야 함 -->
     <!-- 아래의 form은 유저가 submit을 누르면 /newpost로 post요청이 가게 됨 -->
-    <form action="/newpost" method="POST" class="form-box">
+    <form action="/newpost" method="POST" class="form-box" enctype="multipart/form-data">
         <h4>글쓰기</h4>
         <!-- input에 name을 꼭 기입해주어야 post 시 정상적으로 자료가 전송됨 -->
         <input name="title" placeholder="title">
         <input name="content" placeholder="content">
+        <!-- 
+        [이미지 업로드 기능]
+        1. 글작성페이지에 이미지를 업로드 할 수 있는 input태그 생성
+        2. 서버는 이미지를 받으면 S3에 업로드하도록
+        3. 이미지 URL은 DB에 글과 함께 저장해놓기
+        4. 이미지가 필요하면 DB에 있던 URL꺼내서 html에 집어넣기
+        -->
+
+        <!-- 1. 글작성페이지에 이미지를 업로드 할 수 있는 input태그 생성 -->
+        <!--accept는 이미지를 선택하게 하는 권장사항임. 확실하게 이미지로 넣고싶으면 서버에서 확장자 검사 같은거 해주는 게 좋음-->
+        <!-- 파일을 서버로 전송하고 싶으면 부모form태그의 속성에 enctype="multipart/form-data" 를 꼭 써줘야함 -->
+
+        <!-- 2. 서버는 이미지를 받으면 S3에 업로드하도록 -->
+        <!-- 라이브러리 쓸거임. multer, multer-s3, @aws-sdk/client-s3 요렇게 3개 install 하기 -->
+        <!-- multer == 유저가 보낸 파일을 다루는 것이 쉬움 -->
+        <!-- multer-s3 == 그 파일을 s3에 업로드 하는 것이 쉬움 -->
+        <!-- @aws-sdk.... == aws사용 시 필요함 -->
+        <!-- post요청 API에 미들웨어로 upload.single('img1') 을 넣어줌 -->
+        <!--
+            [이미지 여러장 올리고 싶으면?]
+            file type의 input에 multiple 속성 넣고,
+            API에 upload.array('name', 최대이미지개수(int로))
+            업로드한 이미지의 정보는 req.files
+        -->
+        <input type="file" name="img1" accept="image/*">
         <button type="submit">전송</button>
-    </form> 
+    </form>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
   </body>
