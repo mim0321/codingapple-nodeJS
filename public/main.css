@@ -85,3 +85,11 @@ div {
 .pagination-box > * {
   margin: 0 3px;
 }
+
+.active-agree {
+  color: lightgreen;
+}
+
+.active-none {
+  color: lightcoral;
+}

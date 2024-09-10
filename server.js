@@ -18,6 +18,68 @@ app.set('view engine', 'ejs')
 app.use(express.json())
 app.use(express.urlencoded({extended:true}))
 
+// passport 라이브러리 세팅
+const session = require('express-session')
+const passport = require('passport')
+const LocalStrategy = require('passport-local')
+
+// bcrypt 사용
+const bcrypt = require('bcrypt')
+
+// login시 db에 저장하는 법
+const MongoStore = require('connect-mongo')
+
+app.use(passport.initialize())
+app.use(session({
+  secret: 'password',
+  resave : false,
+  saveUninitialized : false,
+  // 유효기간 따로 설정하는 법(maxAge에 ms단위로 지정하면 됨
+  cookie : { maxAge : 60 * 60 * 1000 },
+  // connect-mongo 설정
+  store : MongoStore.create({
+    mongoUrl : 'mongodb+srv://admin:!mdlaodlf9@cluster0.tsxpd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', // DB접속용 url
+    dbName : 'forum', // DB이름
+  })
+}))
+app.use(passport.session())
+
+// passport 라이브러리, ID/PW가 DB랑 일치하는지 검증하는 로직 짜는 공간
+// 아래 로직을 실행하고싶으면 passport.authenicate('local')() 작성하고 실행하면 됨
+passport.use(new LocalStrategy(async (입력한아이디, 입력한비번, cb) => {
+  let result = await db.collection('user').findOne({ username : 입력한아이디})
+  if (!result) {
+    return cb(null, false, { message: '아이디 DB에 없음' })
+  }
+
+  // bcrypt로 해싱된 암호를 비교해주는 함수
+  // bcrypt.compare(입력한암호, DB에 저장된 암호)
+  if (await bcrypt.compare(입력한비번, result.password)) {
+    return cb(null, result)
+  } else {
+    return cb(null, false, { message: '비번불일치' });
+  }
+}))
+
+// passport 라이브러리, 세션만드는 코드
+passport.serializeUser((user, done) => {
+  process.nextTick(() => {
+    done(null, /*세션 document에 기록할 내용*/
+      { id : user._id, username : user.username })
+  })
+})
+
+// passport 라이브러리, 유저가 보낸 쿠키를 분석하는 코드
+passport.deserializeUser( async (user, done) => {
+  // user내용을 그대로 보내버리면 최신정보가 맞지 않을 수 있기 때문에, db에서 한 번 검증하고 넘겨주는 것이 좋다.
+  // findOne으로 user.id를 찾아서 result변수에 저장하고 result를 분석하는 것이 좋은 관습이다.
+  let result = await db.collection('user').findOne({_id : new ObjectId(user.id)})
+  // 하지만 result에는 PW도 있기 때문에(db data를 그대로 가져오니까) PW는 삭제시킨 후에 검증하자!
+  delete result.password
+  process.nextTick(() => {
+    done(null, result)
+  })
+})
 
 
 const { MongoClient } = require('mongodb')
@@ -85,7 +147,17 @@ app.get('/list', async (req, res) => {
 
   // 1. 유저가 글 작성페이지에서 글을 써서 서버로 전송함
   app.get('/write', (req,res) => {
-    res.render('write.ejs')
+    try {
+      if (req.user != undefined){
+        console.log(req.user)
+        res.render('write.ejs')
+      } else {
+        res.send('로그인을 하지 않았습니다.')
+      }
+    } catch (error) {
+      console.log(error)
+      res.status(500).send('서버에러남')
+    }
   })
 
   // 2. 서버는 글에 이상한거 없는지 검사함 == 상단 app.use에 있음
@@ -240,3 +312,91 @@ app.get('/list', async (req, res) => {
   .limit(5).toArray()
   res.render('list.ejs', { list : result })
   })
+
+  /** <회원 기능 만들기>
+   * sesstion방식 (DB에서 유저 정보 확인하는 방식)
+   * passport 라이브러리 사용할거임
+   * 1. 가입기능 만들고
+   * 2. 로그인 기능 만들고
+   * 3. 로그인 완료시 세션 만들고(세션에는 보통 document에 id,pw,유효기간 등등)
+   * 4. 로그인 완료 시 유저에게 입장권을 보내 줌
+   * 5. 로그인 여부를 확인하려면 입장권을 까보고 DB랑 비교해보면 됨
+   */
+
+  // 1. 가입기능 만들고 >> 나중에 숙제로 해볼 것(우선은 db에서 직접 발행해서 만듬)
+  app.post('/signup', async(req, res) => {
+    try {
+      // 유저 이름 중복체크
+      const result = await db.collection('user').find( {username : req.body.username} ).toArray()
+      console.log(result)
+      // 예외처리로 빈칸, 아이디 중복, 짧은암호 등등 만들자(숙제)
+      if ( req.body.username == '' || req.body.password == '' ){
+          res.send('작성하지 않은 부분이 있습니다.')
+        } else if ( result != ''){
+          res.send('중복된 아이디가 있습니다.')
+        } else if ( req.body.password != req.body.checkPassword ){
+          res.send('암호가 일치하지 않습니다.')
+        } else {
+          // 비번 해싱화하기
+          // bcrypt.hash('해싱할 문자', 단계) >> 단계는 1~15 가능
+          let hash = await bcrypt.hash(req.body.password, 10)
+
+          await db.collection('user').insertOne({
+            username: req.body.username,
+            password: hash
+          })
+          console.log('가입완료!')
+          res.redirect('/login')
+        }
+    } catch (e) {
+      console.log(e)
+      res.status(500).send('서버 에러 남')
+    }
+  })
+
+  // 2. 로그인 기능 만들고
+  app.get('/login', async(req, res) => {
+    console.log(req.user)
+    if(req.user != undefined){
+      res.redirect('/')
+    } else {
+      res.render('login.ejs')
+    }
+  })
+
+  app.post('/login', async(req, res, next) => {
+    // 두번째파라미터네 콜백함수 만들고 error, user, info를 파라미터로 입력함
+    // error : 에러가 나면 뭔가가 들어옴
+    // user : 아이디,비번 검증이 완료된 유저 정보가 들어옴
+    // info : 아이디,비번 검증 실패시 에러메세지가 들어옴
+    passport.authenticate('local', (error, user, info)=>{
+      // error가 나면 실행할 것
+      if (error) return res.status(500).json(error)
+      // 아이디,비번 검증 실패시 실행할 것
+      if (!user) return res.status(401).json(info.message)
+      // 아이디,비번 검증 성공하면 실행할 것
+      req.logIn(user, (err)=>{
+        // 검증까지 성공했어도 에러가 날 수 있다고 함. 그래서 작성함
+        if (err) return next(err)
+        // 로그인 완료되면 실행할 것. 여기서는 home으로 이동하게 함
+        res.redirect('/')
+      })
+    })(req, res, next)
+  })
+
+  // myPage 만들기 숙제
+  app.get('/mypage', async(req, res) => {
+    console.log(req.user)
+    if(req.user == undefined){
+      res.send('잘못된 접근입니다.')
+    } else {
+      const result = req.user
+      res.render('mypage.ejs', { result : result })
+    }
+  })
+
+  /**오늘의 숙제
+   * 1. 회원가입 시 중복체크
+   * 2. 암호 일치 확인칸 만들기
+   * 3. 로그인한 사람만 글작성하게 만들어보기
+   */
