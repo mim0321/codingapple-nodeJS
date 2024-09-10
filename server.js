@@ -26,6 +26,9 @@ const LocalStrategy = require('passport-local')
 // bcrypt 사용
 const bcrypt = require('bcrypt')
 
+// 환경변수 dotenv
+require('dotenv').config()
+
 // login시 db에 저장하는 법
 const MongoStore = require('connect-mongo')
 
@@ -38,7 +41,7 @@ app.use(session({
   cookie : { maxAge : 60 * 60 * 1000 },
   // connect-mongo 설정
   store : MongoStore.create({
-    mongoUrl : 'mongodb+srv://admin:!mdlaodlf9@cluster0.tsxpd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', // DB접속용 url
+    mongoUrl : process.env.DB_URL, // DB접속용 url
     dbName : 'forum', // DB이름
   })
 }))
@@ -85,16 +88,68 @@ passport.deserializeUser( async (user, done) => {
 const { MongoClient } = require('mongodb')
 
 let db
-const url = 'mongodb+srv://admin:!mdlaodlf9@cluster0.tsxpd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'
+const url = process.env.DB_URL
 new MongoClient(url).connect().then((client)=>{
   console.log('DB연결성공')
   db = client.db('forum')
-  app.listen(8080, () => {
+  app.listen(process.env.PORT, () => {
       console.log('http://localhost:8080 에서 서버 실행중')
   })
 }).catch((err)=>{
   console.log(err)
 })
+
+/** <미들웨어>
+ * js에서 어떤 반복되는 것들이 많으면 함수로 만들어서 짧게 사용하지않음?
+ * node.js에서도 똑같이 가능함!
+ * 예를 들어서 어떤 항목을 요청할 때 로그인이 되어있지 않으면 로그인 요청하는 기능을 거의 대부분의 요청에 사용해야하는데,
+ * 이럴 때 함수로 만들어서 사용하면 존나 편리함
+ * 사용법은 함수만들어서 갖다 쓰면 끝
+ * 
+ * 하지만 좀 더 멋있게 쓰려면
+ * (req, res) 앞에 함수명 작성하면 됨 ()는 빼고
+ * 작동원리는
+ * 1. app.get('URL')을 요청하면~
+ * 2. 미들웨어 함수를 실행하고,
+ * 3. (req, res)응답을 실행해줘
+ * 
+ * 미들웨어 함수는 파라미터로 req, res, next 총 3개를 작성해야하고
+ * 함수 마지막에는 next() 함수를 꼭 넣어줘야 중간에 무한루프에 걸리지 않음
+ * 
+ * 만약 미들웨어를 여러개 만들어서 여러개를 적용시키고 싶으면
+ * 미들웨어 자리에 [](대괄호)를 넣고 그 안에 차례차례 넣으면 된다.
+ * ex) [함수1, 함수2, 함수3....]
+ * 
+ * Q.API 100개에 미들웨어를 전부 다 적용하고 싶으면? >> 하나하나 다 작성하면 뒤지겠지..?
+ * app.use(미들웨어함수)
+ * 위 코드 아래에 있는 모든 API는 해당 미들웨어 함수를 전부 적용할 수 있다.
+ * (+추가)
+ * app.use('/URL', 미들웨어함수) url을 작성해주면 원하는 라우터에만 미들웨어를 적용할 수 있다.
+ * get, post, put, delete 등등 해당 url이라면 전부 적용 됨(물론 app.use보다 아래에 있는 API들 중에서!)
+ * 하위 URL(/URL/어쩌구, /URL/어쩌구/저쩌구, /URL/저저쩌구...)에도 전부 적용 된다.
+ */
+function checkLogin(req, res, next){
+  if (!req.user){
+    res.send('로그인 하세요!')
+  }
+  next()
+}
+
+// 오늘의 숙제(240911)
+// Q1. 누가 /list로 시작하는 API로 요청 시 현재 시간을 터미널에 출력하고 싶으면?
+// function을 따로 만들지 않고 app.use에서 직접 function 적어도 됨
+app.use('/list', ()=>{
+  console.log(new Date());
+  next()
+})
+
+// Q2.로그인시&회원가입시 유저가 아이디, 비번을 전송하고 있는데 아이디와 비번이 빈칸이면 그러지말라고 응답해주는 middleware를 만들어보기
+function noText(req, res, next){
+  if(req.body.username == '' || req.body.password == ''){
+    res.send('빈칸이야 그러지마...')
+  }
+  next()
+}
 
 // req = request 요청
 // res = response 응답
@@ -110,7 +165,7 @@ app.get('/news', (req, res) => {
     res.send('{title:테스트중}이 DB에 저장 됨')
 })
 
-app.get('/list', async (req, res) => {
+app.get('/list', checkLogin, async (req, res) => {
     let result = await db.collection('post').find().toArray()
     // await db.collection('post').find().toArray()
     //  >> db 컬렉션의 모든 document 출력 하는 문법
@@ -146,14 +201,10 @@ app.get('/list', async (req, res) => {
    */
 
   // 1. 유저가 글 작성페이지에서 글을 써서 서버로 전송함
-  app.get('/write', (req,res) => {
+  app.get('/write', checkLogin, (req,res) => {
     try {
-      if (req.user != undefined){
-        console.log(req.user)
-        res.render('write.ejs')
-      } else {
-        res.send('로그인을 하지 않았습니다.')
-      }
+      console.log(req.user)
+      res.render('write.ejs')
     } catch (error) {
       console.log(error)
       res.status(500).send('서버에러남')
@@ -356,7 +407,6 @@ app.get('/list', async (req, res) => {
 
   // 2. 로그인 기능 만들고
   app.get('/login', async(req, res) => {
-    console.log(req.user)
     if(req.user != undefined){
       res.redirect('/')
     } else {
@@ -395,7 +445,7 @@ app.get('/list', async (req, res) => {
     }
   })
 
-  /**오늘의 숙제
+  /**오늘의 숙제(240910)
    * 1. 회원가입 시 중복체크
    * 2. 암호 일치 확인칸 만들기
    * 3. 로그인한 사람만 글작성하게 만들어보기
