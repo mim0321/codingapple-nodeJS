@@ -108,9 +108,14 @@ const upload = multer({
 
 const { MongoClient } = require('mongodb')
 
-let db
-const url = process.env.DB_URL
-new MongoClient(url).connect().then((client)=>{
+/**router마다 db가 필요하면 database.js에 db출력문을 저장해놓고 꺼내쓰면 됨
+ * database.js 살펴볼 것
+ * 갖다쓰는건 /routes/shop.js 살펴볼 것
+ */
+let connectDB = require('./database.js')
+
+let db;
+connectDB.then((client)=>{
   console.log('DB연결성공')
   db = client.db('forum')
   app.listen(process.env.PORT, () => {
@@ -376,7 +381,7 @@ app.get('/list', checkLogin, async (req, res) => {
    * 2 누르면 6~10번 글 보여줌(/list/2)
    * 3 누르면 11~15번 글 보여줌(/list/3).... << url parmeter문법 활용
    */
-  app.get('/list/:id', async (req, res) => {
+  app.get('/list/:id', checkLogin, async (req, res) => {
     // 1~5번 글을 찾아서 result 변수에 저장
     // find().limit(i).toArray() == 모든 글을 찾는데, 첫번째부터 i개만 잘라서 arr에 넣어줘
     // find().skip(n).limit(i).toArray() == 모든 글을 찾는데, 첫번째부터 n개까지는 스킵하고 i개만 잘라서 arr에 넣어줘
@@ -386,7 +391,7 @@ app.get('/list', checkLogin, async (req, res) => {
     res.render('list.ejs', { list : result })
   })
 
-  app.get('/list/next/:id', async (req, res) => {
+  app.get('/list/next/:id', checkLogin, async (req, res) => {
   /** <페이지가 수천만개가 되어도 빠른 속도로 보여주는 방법>
    * find()함수 안에 조건문을 넣어서 보여주기
    * find({_id : {$gt : 방금 본 마지막 게시물의 id}})
@@ -485,3 +490,7 @@ app.get('/list', checkLogin, async (req, res) => {
    * 2. 암호 일치 확인칸 만들기
    * 3. 로그인한 사람만 글작성하게 만들어보기
    */
+
+  // router 갖다쓰기(상단에 쓰는 게 좋을 듯?)
+  // 공통된 URL 앞부분은 메인서버에서 작성해주면 축약이 가능함
+  app.use('/shop', require('./routes/shop.js'))
