@@ -16,6 +16,11 @@
     <!-- include : 'nav.ejs파일을 그대로 가져와서 사용해주세요.' 라는 문법 -->
     <%- include('nav.ejs') %>
 
+    <div class="search-container">
+        <input type="text" id="search-text">
+        <button type="submit" id="search-btn">검색</button>
+    </div>
+
     <div class="white-bg">
       <% for (let i=0; i < list.length; i++){ %>
       <div class="list-box">
@@ -65,6 +70,8 @@
       해결 : for문을 ejs로 작성하고, 나머지 js는 script에 작성함.
             변수 i는 ejs에서 선언하였으므로 ejs문법으로 중간에 사용!
     -->
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js' integrity='sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==' crossorigin='anonymous'></script>
+
     <script>
       for (let i=0; i < '<%= list.length %>';i++){
         console.log(i)
@@ -87,22 +94,27 @@
         })
       }
       // 예외처리 하는 법!
-      fetch('/')
-      .then((r)=>{
-        if(r.status == 200) {
-          return r.json()
-        } else {
-          // 서버가 에러코드 전송 시 실행할 코드
-          alert('error!')
-        }
-      })
-      .then((result)=>{
-        // 성공 시 실행할 코드
-      }).catch((error)=>{
-        // 인터넷 문제 등으로 실패 시 실행할 코드
-        console.log(error)
-      })
+      // fetch('/')
+      // .then((r)=>{
+      //   if(r.status == 200) {
+      //     return r.json()
+      //   } else {
+      //     // 서버가 에러코드 전송 시 실행할 코드
+      //     alert('error!')
+      //   }
+      // })
+      // .then((result)=>{
+      //   // 성공 시 실행할 코드
+      // }).catch((error)=>{
+      //   // 인터넷 문제 등으로 실패 시 실행할 코드
+      //   console.log(error)
+      // })
 
+      document.querySelector('#search-btn').addEventListener('click', function(){
+        let result = document.querySelector('#search-text').value
+        location.href = '/search?val=' + result
+        console.log(result)
+      })
       </script>
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"

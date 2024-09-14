@@ -116,7 +116,6 @@ let connectDB = require('./database.js')
 
 let db;
 connectDB.then((client)=>{
-  console.log('DB연결성공')
   db = client.db('forum')
   app.listen(process.env.PORT, () => {
       console.log('http://localhost:8080 에서 서버 실행중')
@@ -267,7 +266,7 @@ app.get('/list', checkLogin, async (req, res) => {
         await db.collection('post').insertOne({
           title: req.body.title,
           content: req.body.content,
-          img: req.file.location,
+          // img: req.file.location,
           })
           res.redirect('/list')
         }
@@ -494,3 +493,19 @@ app.get('/list', checkLogin, async (req, res) => {
   // router 갖다쓰기(상단에 쓰는 게 좋을 듯?)
   // 공통된 URL 앞부분은 메인서버에서 작성해주면 축약이 가능함
   app.use('/shop', require('./routes/shop.js'))
+
+  /** 검색기능 활성화
+   * 1. input에 텍스트를 적고 검색버튼을 누르면
+   * 2. 텍스트를 서버에 보낸 후
+   * 3. 서버가 그 텍스트가 포함되어있는 Document를 찾음
+   * 4. document를 다시 search/list에 보내고,
+   * 5. obj를 출력함
+   */
+
+  // 정규식 사용하면 일부 텍스트만으로도 찾을 수 있음
+  // 정규식은 {$regex : ???}
+  app.get('/search', async (req, res) => {
+    const result = await db.collection('post').find({ title : {$regex : req.query.val} }).toArray()
+    console.log(result)
+    res.render('list.ejs', { list : result })
+  })
