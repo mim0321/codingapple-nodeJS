@@ -93,3 +93,7 @@ div {
 .active-none {
   color: lightcoral;
 }
+
+.search-container {
+  margin: 18px;
+}
