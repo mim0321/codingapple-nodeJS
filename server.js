@@ -539,6 +539,7 @@ app.get('/list', checkLogin, async (req, res) => {
       {$limit : 10},
       // {$skip : n}, {조건4...}
       // limit이랑 skip을 잘쓰면 검색내용 페이지네이션도 응용 가능하겠쥬?
+      // {$project : {title : 1}} >> 필드 값을 숨기고 싶을 때 0은 숨기고, 1은 보여주기
     ]
     const result = await db.collection('post').aggregate(search).toArray()
     console.log(result)
