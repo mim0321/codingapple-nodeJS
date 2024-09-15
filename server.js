@@ -504,8 +504,43 @@ app.get('/list', checkLogin, async (req, res) => {
 
   // 정규식 사용하면 일부 텍스트만으로도 찾을 수 있음
   // 정규식은 {$regex : ???}
+  // find()로 찾으면 마찬가지로 존나 느림 그래서 Binary search 같은거 하면 좋음
+  // binary search를 쓰려면 index가 미리 정렬되어있어야함(그래야 절반씩 자르니까)
+  // index == 검색 등을 위해 데이터를 복사해서 미리 정렬해놓은 것
+
+  // app.get('/search', async (req, res) => {
+  //   const result = await db.collection('post').find({ title : {$regex : req.query.val} }).toArray()
+  //   console.log(result)
+  //   res.render('list.ejs', { list : result })
+  // })
+
+  // index를 사용해서 검색하려면 아래 코드로
+  // 근데 한글은 사실 이거 쓸데없어서 search index(full text index)를 만들어서 써야함ㅇㅇ
+  // app.get('/search', async (req, res) => {
+  //   const result = await db.collection('post').find({$text : {$search : req.query.val}}).toArray()
+  //   // .find() 성능 평가 하려면 .toArray()가 아니라 explain('excutionStats') 사용
+  //   console.log(result)
+  //   res.render('list.ejs', { list : result })
+  // })
+
+  /** search index 동작원리
+   * 1. 문장에서 조사, 불용어 등을 제거(s, and, The, !, 을, 를, 이, 가 등등)
+   * 2. 모든 단어들을 뽑아서 정렬함
+   * 3. 해당 단어들이 어떤 document에 있었는지 id등을 지정해서 따로 저장함
+   * .find() 대신에 .aggregate()를 사용함. 이건 조건들을 여러개 넣을 수 있는 장점이 있음
+   */
   app.get('/search', async (req, res) => {
-    const result = await db.collection('post').find({ title : {$regex : req.query.val} }).toArray()
+    let search = [
+      {$search : {
+        index : 'title_index',
+        text : { query : req.query.val, path : 'title' }
+      }},
+      {$sort : { _id : 1 }},
+      {$limit : 10},
+      // {$skip : n}, {조건4...}
+      // limit이랑 skip을 잘쓰면 검색내용 페이지네이션도 응용 가능하겠쥬?
+    ]
+    const result = await db.collection('post').aggregate(search).toArray()
     console.log(result)
     res.render('list.ejs', { list : result })
   })
